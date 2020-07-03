@@ -53,11 +53,13 @@ def main(args):
 
     compare_gt(json_file = args.test_label_path,
     dataset_name = test_name,
-    cfg,
-    os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
+    cfg = cfg,
+    weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
     score_thres_test = 0.7,
     num_sample = 10
-    ) 
+    )
+
+    mlflow.log_artifacts('compare_result/')
 
 
 if __name__ == "__main__":
