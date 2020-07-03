@@ -278,7 +278,7 @@ def default_argument_parser(epilog=None):
         '--test_label_path',
         required = True,
         help = 'path to test label json file in coco format e.g. ./test.json',
-        defalut = './train.json'
+        defalut = './train.json',
         type = str
     )
 
@@ -292,20 +292,22 @@ def default_argument_parser(epilog=None):
     )
     return parser
 
-def setup(args):
+def setup(args, train_name, test_name):
     """
     Create configs and perform basic setups and log hyperparameter
     """
     cfg = get_cfg()
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    cfg.DATASETS.TRAIN = (train_name, )
+    cfg.DATASETS.TEST = (test_name, )
     cfg.freeze()
     default_setup(
         cfg, args
     )
     # get adjusted hyperparameter  
     hyperparameter = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
-    mlflow.log_params(hyper_parameters)
+    mlflow.log_params(hyperparameters)
     return cfg
 
 
