@@ -27,7 +27,7 @@ from detectron2.utils.events import (
     JSONWriter,
     TensorboardXWriter,
     )
-from detectron2.engine import default_setup
+from detectron2.engine import default_setup, DefaultPredictor
 from detectron2 import config
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
@@ -37,6 +37,7 @@ from detectron2.data import build_detection_test_loader
 from detectron2.data.detection_utils import read_image
 from detectron2.data.datasets import load_coco_json, register_coco_instances
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset, print_csv_format
+from detectron2.utils.visualizer import Visualizer
 
 from detectron2.data import (
     MetadataCatalog,
@@ -53,7 +54,7 @@ def do_evaluate(cfg, model):
     results = OrderedDict()
     for dataset_name in cfg.DATASETS.TEST:
         data_loader = build_detection_test_loader(cfg, dataset_name)
-        evaluator = COCOEvaluator(cfg.DATASETS.TEST, cfg, False, output_dir= cfg.OUTPUT_DIR)
+        evaluator = COCOEvaluator(dataset_name, cfg, False, output_dir= cfg.OUTPUT_DIR)
         results_i = inference_on_dataset(model, data_loader, evaluator)
         results[dataset_name] = results_i
         if comm.is_main_process():
@@ -62,13 +63,6 @@ def do_evaluate(cfg, model):
     if len(results) == 1:
         results = list(results.values())[0]
     return results
-
-def val_mapper(dataset_dict):
-    """
-    mapper function for do_val function
-    """
-    mapper = DatasetMapper(cfg, True) #True for return ground truth
-    return mapper(dataset_dict)
 
 def do_val_monitor(cfg, model, data_val_loader):
     """
@@ -106,11 +100,11 @@ def do_train(cfg, model, resume=False):
     )
 
     data_loader = build_detection_train_loader(cfg)
-    
+    best_model_weight = copy.deepcopy(model.state_dict())
     best_val_loss = None
     data_val_loader = build_detection_test_loader(cfg,
                                                   cfg.DATASETS.TEST[0],
-                                                  mapper = val_mapper)
+                                                  mapper = DatasetMapper(cfg, True))
     logger.info("Starting training from iteration {}".format(start_iter))
 
     with EventStorage(start_iter) as storage:
@@ -181,20 +175,12 @@ def regist_dataset(json_train_path, json_test_path):
                             "")
     return train_name, test_name
 
-
-compare_gt(json_file = args.test_label_path,
-    dataset_name = test_name,
-    cfg,
-    os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
-    score_thres_test = 0.7,
-    num_sample = 10
-    ) 
-def compare_gt(json_file, cfg, dataset_name, WEIGHTS, score_thres_test = 0.7, num_sample = 10):
+def compare_gt(json_file, cfg, dataset_name, weight, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
-  cfg.MODEL.WEIGHTS = WEIGHTS
+  cfg.MODEL.WEIGHTS = weight
   predictor = DefaultPredictor(cfg)
 
-  data_list_dict = load_coco_json(json_file,
+  dataset_list_dict = load_coco_json(json_file,
                                   image_root = '',
                                   dataset_name = dataset_name)
   if not os.path.isdir('compare_result'):
@@ -227,7 +213,7 @@ def compare_gt(json_file, cfg, dataset_name, WEIGHTS, score_thres_test = 0.7, nu
 
     #stacking groudtruth and prediction
     merge_img = np.hstack((gt, pd))
-    result_name = os.path.join('compare_result/', os.path.split(d['file_name'])[1])
+    result_name = os.path.join('compare_result/', os.path.split(img_dict['file_name'])[1])
     cv2.imwrite(result_name, merge_img)
 
 def default_argument_parser(epilog=None):
