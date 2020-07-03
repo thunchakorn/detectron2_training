@@ -14,21 +14,23 @@ from torch.nn.parallel import DistributedDataParallel
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 import detectron2.utils.comm as comm
-from detectron2.engine import default_argument_parser, launch
+from detectron2.engine import launch
 from detectron2.data.datasets import register_coco_instances
 from detectron2.engine import launch
 
 
+
 def main(args):
-    train_name, test_name = regist_dataset(args.train_json, args.test_json)
-    cfg = setup(args, train_name, test_name)
+    train_name, test_name = regist_dataset(args.train_label_path, args.test_label_path)
+    cfg, hyperparameters = setup(args, train_name, test_name)
+    mlflow.log_params(hyperparameters)
     model = build_model(cfg)
     logger.info("Model:\n{}".format(model))
     if args.eval_only:
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
             cfg.MODEL.WEIGHTS, resume=args.resume
         )
-        return do_test(cfg, model)
+        return do_evaluate(cfg, model)
 
     distributed = comm.get_world_size() > 1
     if distributed:
@@ -36,12 +38,29 @@ def main(args):
             model, device_ids=[comm.get_local_rank()], broadcast_buffers=False
         )
 
-    do_train(cfg, model, resume=args.resume)
-    return do_test(cfg, model)
+    model = do_train(cfg, model, resume=args.resume)
+    mlflow.pytorch.log_model(pytorch_model = model,
+                         artifact_path = 'model_best',
+                         conda_env = mlflow.pytorch.get_default_conda_env())
+
+    results = do_evaluate(cfg, model)
+    mlflow.log_metrics({k + 'bbox':v for k,v in results['bbox'].items()})
+    mlflow.log_metrics({k + 'segm':v for k,v in results['segm'].items()}) 
+    
+    dataset_val = load_coco_json(json_file = json_val,
+                               image_root = '',
+                               dataset_name = "financial_val")
+
+    compare_gt(json_file = args.test_label_path,
+    dataset_name = test_name,
+    cfg,
+    os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
+    score_thres_test = 0.7,
+    num_sample = 10
+    ) 
 
 
 if __name__ == "__main__":
-    logger = logging.getLogger("detectron2")
 
     args = default_argument_parser().parse_args()
     
@@ -54,4 +73,3 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(args,),
     )
-    compare_gt

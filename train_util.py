@@ -10,6 +10,7 @@ import copy
 from collections import OrderedDict
 import time
 import argparse
+import logging
 
 # import mlflow
 import mlflow 
@@ -26,7 +27,7 @@ from detectron2.utils.events import (
     JSONWriter,
     TensorboardXWriter,
     )
-from detectron2.engine import default_argument_parser, default_setup
+from detectron2.engine import default_setup
 from detectron2 import config
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
@@ -43,7 +44,9 @@ from detectron2.data import (
     build_detection_train_loader,
 )
 
-def do_test(cfg, model):
+logger = logging.getLogger("detectron2")
+
+def do_evaluate(cfg, model):
     """
     Evaluate on test set using coco evaluate
     """
@@ -67,7 +70,7 @@ def val_mapper(dataset_dict):
     mapper = DatasetMapper(cfg, True) #True for return ground truth
     return mapper(dataset_dict)
 
-def do_evaluate(cfg, model, data_val_loader, storage):
+def do_val_monitor(cfg, model, data_val_loader):
     """
     get loss of validate/test set for monitoring in do_train function
     """
@@ -138,7 +141,7 @@ def do_train(cfg, model, resume=False):
             ):
                 logger.setLevel(logging.CRITICAL)
                 print('validating')
-                val_total_loss = do_val(cfg, model, data_val_loader, storage)
+                val_total_loss = do_val_monitor(cfg, model, data_val_loader)
                 logger.setLevel(logging.DEBUG)
                 logger.info(f"validation loss of iteration {iteration}th: {val_total_loss}")
                 storage.put_scalar(name = 'val_total_loss', value = val_total_loss)
@@ -151,14 +154,13 @@ def do_train(cfg, model, resume=False):
             
             # สร้าง checkpointer เพิ่มให้ save best model โดยดูจาก val loss
             if iteration - start_iter > 5 and (iteration % 20 == 0 or iteration == max_iter):
-                logger.info(f"time per iteration: {(time.time() - start)/20} seconds")
                 for writer in writers:
                     writer.write()
             
     model.load_state_dict(best_model_weight)
     checkpointer.save('model_best')
     return model
-
+                         
 def regist_dataset(json_train_path, json_test_path):
     """
     register training and testing dataset
@@ -179,11 +181,22 @@ def regist_dataset(json_train_path, json_test_path):
                             "")
     return train_name, test_name
 
-def compare_gt(dataset_list_dict, cfg, dataset_name, WEIGHTS, score_thres_test = 0.7, num_sample = 10):
+
+compare_gt(json_file = args.test_label_path,
+    dataset_name = test_name,
+    cfg,
+    os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
+    score_thres_test = 0.7,
+    num_sample = 10
+    ) 
+def compare_gt(json_file, cfg, dataset_name, WEIGHTS, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
   cfg.MODEL.WEIGHTS = WEIGHTS
   predictor = DefaultPredictor(cfg)
 
+  data_list_dict = load_coco_json(json_file,
+                                  image_root = '',
+                                  dataset_name = dataset_name)
   if not os.path.isdir('compare_result'):
     os.mkdir('compare_result')
   
@@ -270,6 +283,7 @@ def default_argument_parser(epilog=None):
         '--train_label_path',
         required = True,
         help = 'path to train label json file in coco format e.g. ./train.json',
+        default = './train.json',
         type = str
     )
 
@@ -278,7 +292,7 @@ def default_argument_parser(epilog=None):
         '--test_label_path',
         required = True,
         help = 'path to test label json file in coco format e.g. ./test.json',
-        defalut = './train.json',
+        default = './test.json',
         type = str
     )
 
@@ -301,14 +315,13 @@ def setup(args, train_name, test_name):
     cfg.merge_from_list(args.opts)
     cfg.DATASETS.TRAIN = (train_name, )
     cfg.DATASETS.TEST = (test_name, )
-    cfg.freeze()
+    # cfg.freeze()
     default_setup(
         cfg, args
     )
     # get adjusted hyperparameter  
-    hyperparameter = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
-    mlflow.log_params(hyperparameters)
-    return cfg
+    hyperparameters = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
+    return cfg, hyperparameters
 
 
 
