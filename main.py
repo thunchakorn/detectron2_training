@@ -18,32 +18,8 @@ from detectron2.engine import default_argument_parser, launch
 from detectron2.data.datasets import register_coco_instances
 
 
-def regist_dataset(json_train_path, json_test_path):
-    """
-    register training and testing dataset
-    dataset must be in coco format
-    ouput: name of training and testing set
-    """
-    train_name = os.path.split(json_train_path)[-1]
-    test_name = os.path.split(json_test_path)[-1]
-    
-    register_coco_instances(train_name,
-                            {},
-                            json_train_path,
-                            "")
-    
-    register_coco_instances(test_name,
-                            {},
-                            json_test_path,
-                            "")
-    return train_name, test_name
-
 def main(args):
     train_name, test_name = regist_dataset(args.train_json, args.test_json)
-    args.opts.append("DATASETS.TRAIN")
-    args.opts.append(f"({train_name}, )")
-    args.opts.append("DATASETS.TEST")
-    args.opts.append(f"({test_name}, )")
     
     cfg = setup(args)
     model = build_model(cfg)

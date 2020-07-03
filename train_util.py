@@ -1,15 +1,15 @@
-
-
 # import some common libraries
 import numpy as np
 import cv2
 import random
 import os
+import sys
 import time
 import torch
 import copy
 from collections import OrderedDict
 import time
+import argparse
 
 # import mlflow
 from mlflow import log_metric, log_param, log_artifact
@@ -18,7 +18,7 @@ from mlflow import log_metric, log_param, log_artifact
 import detectron2.utils.comm as comm
 from detectron2 import model_zoo
 from detectron2.modeling import build_model
-from detectron2.solver import build_lr_scheduler, build_optimizer
+from detectron2.solver import build_lr_scheduler, build_optimizer, print_csv_format
 from detectron2.utils.events import (
     CommonMetricPrinter,
     EventStorage,
@@ -40,8 +40,6 @@ from detectron2.data import (
     build_detection_test_loader,
     build_detection_train_loader,
 )
-
-
 
 def do_test(cfg, model):
     """
@@ -67,7 +65,7 @@ def val_mapper(dataset_dict):
     mapper = DatasetMapper(cfg, True) #True for return ground truth
     return mapper(dataset_dict)
 
-def do_val(cfg, model, data_val_loader, storage):
+def do_evaluate(cfg, model, data_val_loader, storage):
     """
     get loss of validate/test set for monitoring in do_train function
     """
@@ -156,21 +154,85 @@ def do_train(cfg, model, resume=False):
                     writer.write()
             
     model.load_state_dict(best_model_weight)
-    checkpointer.save('model_best')     
-    do_test(cfg, model)
-            # periodic_checkpointer.step(iteration - 1) 
+    checkpointer.save('model_best')
+    return model
 
-def setup(args):
+def regist_dataset(json_train_path, json_test_path):
     """
-    Create configs and perform basic setups.
+    register training and testing dataset
+    dataset must be in coco format
+    ouput: name of training and testing set
     """
-    cfg = get_cfg()
-    cfg.merge_from_file(args.config_file)
-    cfg.merge_from_list(args.opts)
-    cfg.freeze()
-    default_setup(
-        cfg, args
-    )  # if you don't like any of the default setup, write your own setup code
-    return cfg
+    train_name = os.path.split(json_train_path)[-1]
+    test_name = os.path.split(json_test_path)[-1]
+    
+    register_coco_instances(train_name,
+                            {},
+                            json_train_path,
+                            "")
+    
+    register_coco_instances(test_name,
+                            {},
+                            json_test_path,
+                            "")
+    return train_name, test_name
+
+def setup_hyperparameter(config_model_zoo, **kwargs):
+  """
+  Setup hyperparameter in config for training 
+  Input:
+    config_model_zoo:
+      cofig from model zoo
+    **kwargs:
+      other configs, ref: https://detectron2.readthedocs.io/modules/config.html#config-references
+      change period (.) to double-underscore (__) eg. MODEL.WEIGHTS -> MODEL__WEIGHTS
+      MODEL.ROI_HEADS.SCORE_THRESH_TEST -> MODEL__ROI_HEADS__SCORE_THRES_TEST
+  Return:
+    cfg file:
+    All keyword hyperparameter for logging
+  """
+
+  parser = default_argument_parser()
+  parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
+  args = parser.parse_args()
+
+  cfg = get_cfg()
+  cfg.merge_from_file(config_model_zoo)
+  hyper_parameters = {}
+  for key, value in kwargs.items():
+    key_param = key.replace('__', '.')
+    cfg.merge_from_list([key_param, value])
+    hyper_parameters[key_param] = value # log hyperparameter
+  default_setup(cfg, args)
+  return cfg, hyper_parameters
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
