@@ -176,16 +176,14 @@ def regist_dataset(json_train_path, json_test_path):
                             "")
     return train_name, test_name
 
-def compare_gt(json_file, cfg, dataset_name, weight, score_thres_test = 0.7, num_sample = 10):
-  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
+def compare_gt(json_file, cfg, dataset_name, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
   cfg.MODEL.WEIGHTS = weight
   predictor = DefaultPredictor(cfg)
 
   dataset_list_dict = load_coco_json(json_file,
                                   image_root = '',
                                   dataset_name = dataset_name)
-  dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
-  os.mkdir(dest_dir)
   
   if len(dataset_list_dict) > num_sample:
     sample = random.sample(range(len(dataset_list_dict)), num_sample)

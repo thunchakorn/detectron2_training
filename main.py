@@ -24,12 +24,11 @@ from detectron2.engine import launch
 def main(args):
     train_name, test_name = regist_dataset(args.train_label_path, args.test_label_path)
     cfg, hyperparameters = setup(args, train_name, test_name)
-    if args.resume:
-        pass
-    else:
+    dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
+    if not args.resume:
         if os.path.isdir(cfg.OUTPUT_DIR):
             shutil.rmtree(cfg.OUTPUT_DIR)
-        dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
+        os.mkdir(cfg.OUTPUT_DIR)
         os.mkdir(dest_dir)
 
     mlflow.log_params(hyperparameters)
