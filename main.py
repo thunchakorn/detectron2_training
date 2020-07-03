@@ -1,4 +1,5 @@
 import os
+import shutil
 import logging
 #Requirements for detectron2
 
@@ -23,6 +24,14 @@ from detectron2.engine import launch
 def main(args):
     train_name, test_name = regist_dataset(args.train_label_path, args.test_label_path)
     cfg, hyperparameters = setup(args, train_name, test_name)
+    if args.resume:
+        pass
+    else:
+        if os.path.isdir(cfg.OUTPUT_DIR):
+            shutil.rmtree(cfg.OUTPUT_DIR)
+        dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
+        os.mkdir(dest_dir)
+
     mlflow.log_params(hyperparameters)
     model = build_model(cfg)
     logger.info("Model:\n{}".format(model))
@@ -53,6 +62,7 @@ def main(args):
 
     compare_gt(json_file = args.test_label_path,
     dataset_name = test_name,
+    dest_dir = dest_dir,
     cfg = cfg,
     weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
     score_thres_test = 0.7,
@@ -65,7 +75,8 @@ def main(args):
 if __name__ == "__main__":
 
     args = default_argument_parser().parse_args()
-    
+    # mlflow.set_tracking_uri(remote_server_uri)
+    # mlflow.set_experiment("/my-experiment")
     print("Command Line Args:", args)
     launch(
         main,
