@@ -12,19 +12,21 @@ import time
 import argparse
 
 # import mlflow
-from mlflow import log_metric, log_param, log_artifact
+import mlflow 
+import mlflow.pytorch
 
 # import some common detectron2 utilities
 import detectron2.utils.comm as comm
 from detectron2 import model_zoo
 from detectron2.modeling import build_model
-from detectron2.solver import build_lr_scheduler, build_optimizer, print_csv_format
+from detectron2.solver import build_lr_scheduler, build_optimizer
 from detectron2.utils.events import (
     CommonMetricPrinter,
     EventStorage,
     JSONWriter,
     TensorboardXWriter,
     )
+from detectron2.engine import default_argument_parser, default_setup
 from detectron2 import config
 from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
@@ -33,7 +35,7 @@ from detectron2.data import DatasetMapper, MapDataset
 from detectron2.data import build_detection_test_loader
 from detectron2.data.detection_utils import read_image
 from detectron2.data.datasets import load_coco_json, register_coco_instances
-from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from detectron2.evaluation import COCOEvaluator, inference_on_dataset, print_csv_format
 
 from detectron2.data import (
     MetadataCatalog,
@@ -177,40 +179,134 @@ def regist_dataset(json_train_path, json_test_path):
                             "")
     return train_name, test_name
 
-def setup_hyperparameter(config_model_zoo, **kwargs):
-  """
-  Setup hyperparameter in config for training 
-  Input:
-    config_model_zoo:
-      cofig from model zoo
-    **kwargs:
-      other configs, ref: https://detectron2.readthedocs.io/modules/config.html#config-references
-      change period (.) to double-underscore (__) eg. MODEL.WEIGHTS -> MODEL__WEIGHTS
-      MODEL.ROI_HEADS.SCORE_THRESH_TEST -> MODEL__ROI_HEADS__SCORE_THRES_TEST
-  Return:
-    cfg file:
-    All keyword hyperparameter for logging
-  """
+def compare_gt(dataset_list_dict, cfg, dataset_name, WEIGHTS, score_thres_test = 0.7, num_sample = 10):
+  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.7
+  cfg.MODEL.WEIGHTS = WEIGHTS
+  predictor = DefaultPredictor(cfg)
 
-  parser = default_argument_parser()
-  parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
-  args = parser.parse_args()
+  if not os.path.isdir('compare_result'):
+    os.mkdir('compare_result')
+  
+  if len(dataset_list_dict) > num_sample:
+    sample = random.sample(range(len(dataset_list_dict)), num_sample)
+  else:
+    sample = range(len(dataset_list_dict))
+  for s in sample:
+    img_dict = dataset_list_dict[s]
+    print(img_dict['file_name'])
+    img = read_image(img_dict['file_name'],format = 'BGR')
+    h, w = img_dict['height'], img_dict['width']
+    v_gt = Visualizer(img[:, :, ::-1],
+                            metadata=MetadataCatalog.get(dataset_name),
+                            scale=0.5)
+    v_gt = v_gt.draw_dataset_dict(img_dict)
 
-  cfg = get_cfg()
-  cfg.merge_from_file(config_model_zoo)
-  hyper_parameters = {}
-  for key, value in kwargs.items():
-    key_param = key.replace('__', '.')
-    cfg.merge_from_list([key_param, value])
-    hyper_parameters[key_param] = value # log hyperparameter
-  default_setup(cfg, args)
-  return cfg, hyper_parameters
+    #predicting
+    outputs = predictor(img)
 
+    #visualizing frmo prediction result
+    
+    v_pd = Visualizer(img[:, :, ::-1], MetadataCatalog.get(dataset_name), scale=1.2)
+    v_pd = v_pd.draw_instance_predictions(outputs["instances"].to("cpu"))
 
+    gt = cv2.resize(v_gt.get_image()[:, :, ::-1], (w,h))
+    pd = cv2.resize(v_pd.get_image()[:, :, ::-1], (w,h))
 
+    #stacking groudtruth and prediction
+    merge_img = np.hstack((gt, pd))
+    result_name = os.path.join('compare_result/', os.path.split(d['file_name'])[1])
+    cv2.imwrite(result_name, merge_img)
 
+def default_argument_parser(epilog=None):
+    """
+    Create a parser with some common arguments used by detectron2 users.
 
+    Args:
+        epilog (str): epilog passed to ArgumentParser describing the usage.
 
+    Returns:
+        argparse.ArgumentParser:
+    """
+    parser = argparse.ArgumentParser(
+        epilog=epilog
+        or f"""
+    Examples:
+
+    Run on single machine:
+        $ {sys.argv[0]} --num-gpus 8 --config-file cfg.yaml -trp ./train.json -tep ./test.json MODEL.WEIGHTS /path/to/weight.pth
+
+    Run on multiple machines:
+        (machine0)$ {sys.argv[0]} --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
+        (machine1)$ {sys.argv[0]} --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+    """,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="whether to attempt to resume from the checkpoint directory",
+    )
+    parser.add_argument("--eval-only", action="store_true", help="perform evaluation only")
+    parser.add_argument("--num-gpus", type=int, default=1, help="number of gpus *per machine*")
+    parser.add_argument("--num-machines", type=int, default=1, help="total number of machines")
+    parser.add_argument(
+        "--machine-rank", type=int, default=0, help="the rank of this machine (unique per machine)"
+    )
+
+    # PyTorch still may leave orphan processes in multi-gpu training.
+    # Therefore we use a deterministic way to obtain port,
+    # so that users are aware of orphan processes by seeing the port occupied.
+    port = 2 ** 15 + 2 ** 14 + hash(os.getuid() if sys.platform != "win32" else 1) % 2 ** 14
+    parser.add_argument(
+        "--dist-url",
+        default="tcp://127.0.0.1:{}".format(port),
+        help="initialization URL for pytorch distributed backend. See "
+        "https://pytorch.org/docs/stable/distributed.html for details.",
+    )
+
+    parser.add_argument(
+        '-trp',
+        '--train_label_path',
+        required = True,
+        help = 'path to train label json file in coco format e.g. ./train.json',
+        type = str
+    )
+
+    parser.add_argument(
+        '-tep',
+        '--test_label_path',
+        required = True,
+        help = 'path to test label json file in coco format e.g. ./test.json',
+        defalut = './train.json'
+        type = str
+    )
+
+    parser.add_argument(
+        "opts",
+        help="""Other configs from https://detectron2.readthedocs.io/modules/config.html#config-references
+        non string and numeric type must in quotation mark "" e.g. SOLVER.STEPS '(2000, )'
+        """,
+        default = [],
+        nargs = argparse.REMAINDER,
+    )
+    return parser
+
+def setup(args):
+    """
+    Create configs and perform basic setups and log hyperparameter
+    """
+    cfg = get_cfg()
+    cfg.merge_from_file(args.config_file)
+    cfg.merge_from_list(args.opts)
+    cfg.freeze()
+    default_setup(
+        cfg, args
+    )
+    # get adjusted hyperparameter  
+    hyperparameter = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
+    mlflow.log_params(hyper_parameters)
+    return cfg
 
 
 
