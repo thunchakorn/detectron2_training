@@ -47,7 +47,7 @@ def main(args):
     mlflow.log_metrics({k + 'bbox':v for k,v in results['bbox'].items()})
     mlflow.log_metrics({k + 'segm':v for k,v in results['segm'].items()}) 
     
-    dataset_val = load_coco_json(json_file = json_val,
+    dataset_val = load_coco_json(json_file = args.test_label_path,
                                image_root = '',
                                dataset_name = "financial_val")
 
@@ -59,7 +59,7 @@ def main(args):
     num_sample = 10
     )
 
-    mlflow.log_artifacts('compare_result/')
+    mlflow.log_artifacts(cfg.OUTPUT_DIR)
 
 
 if __name__ == "__main__":

@@ -64,6 +64,7 @@ def do_evaluate(cfg, model):
         results = list(results.values())[0]
     return results
 
+
 def do_val_monitor(cfg, model, data_val_loader):
     """
     get loss of validate/test set for monitoring in do_train function
@@ -183,8 +184,8 @@ def compare_gt(json_file, cfg, dataset_name, weight, score_thres_test = 0.7, num
   dataset_list_dict = load_coco_json(json_file,
                                   image_root = '',
                                   dataset_name = dataset_name)
-  if not os.path.isdir('compare_result'):
-    os.mkdir('compare_result')
+  dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
+  os.mkdir(dest_dir)
   
   if len(dataset_list_dict) > num_sample:
     sample = random.sample(range(len(dataset_list_dict)), num_sample)
@@ -213,7 +214,7 @@ def compare_gt(json_file, cfg, dataset_name, weight, score_thres_test = 0.7, num
 
     #stacking groudtruth and prediction
     merge_img = np.hstack((gt, pd))
-    result_name = os.path.join('compare_result/', os.path.split(img_dict['file_name'])[1])
+    result_name = os.path.join(dest_dir, os.path.split(img_dict['file_name'])[1])
     cv2.imwrite(result_name, merge_img)
 
 def default_argument_parser(epilog=None):
