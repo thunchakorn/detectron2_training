@@ -16,12 +16,12 @@ from detectron2.checkpoint import DetectionCheckpointer
 import detectron2.utils.comm as comm
 from detectron2.engine import default_argument_parser, launch
 from detectron2.data.datasets import register_coco_instances
+from detectron2.engine import launch
 
 
 def main(args):
     train_name, test_name = regist_dataset(args.train_json, args.test_json)
-    
-    cfg = setup(args)
+    cfg = setup(args, train_name, test_name)
     model = build_model(cfg)
     logger.info("Model:\n{}".format(model))
     if args.eval_only:
@@ -42,14 +42,8 @@ def main(args):
 
 if __name__ == "__main__":
     logger = logging.getLogger("detectron2")
-    parser = default_argument_parser()
-    parser.add_argument("--train_json",
-                      help = 'path to json label file of training dataset',
-                      required=True)
-    parser.add_argument("--test_json",
-                      help = 'path to json label file of test dataset',
-                      required=True)
-    args = parser.parse_args()
+
+    args = default_argument_parser().parse_args()
     
     print("Command Line Args:", args)
     launch(
@@ -60,3 +54,4 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(args,),
     )
+    compare_gt
