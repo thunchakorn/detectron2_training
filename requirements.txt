@@ -1,0 +1,3 @@
+opencv_python
+numpy==1.18.1
+mlflow==1.9.1
