@@ -34,6 +34,7 @@ from detectron2.data import MetadataCatalog
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import DatasetMapper, MapDataset
 from detectron2.data import build_detection_test_loader
+from detectron2.data import transforms as T 
 from detectron2.data.detection_utils import read_image
 from detectron2.data.datasets import load_coco_json, register_coco_instances
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset, print_csv_format
@@ -100,7 +101,12 @@ def do_train(cfg, model, resume=False):
         else []
     )
 
-    data_loader = build_detection_train_loader(cfg)
+    data_loader = build_detection_train_loader(cfg, mapper=DatasetMapper(cfg,
+                                                                        is_train=True,
+                                                                        augmentations=[T.RandomFlip(prob = 0.5, vertical = False),
+                                                                        T.RandomRotation(angle = [-10.0, 10.0]),
+                                                                        
+   ]))
     best_model_weight = copy.deepcopy(model.state_dict())
     best_val_loss = None
     data_val_loader = build_detection_test_loader(cfg,
