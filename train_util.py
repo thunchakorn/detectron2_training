@@ -260,6 +260,7 @@ def default_argument_parser(epilog=None):
     parser.add_argument(
         "--machine-rank", type=int, default=0, help="the rank of this machine (unique per machine)"
     )
+    parser.add_argument("--mlflow_path", help="url to log mlflow", default = None)
 
     # PyTorch still may leave orphan processes in multi-gpu training.
     # Therefore we use a deterministic way to obtain port,
