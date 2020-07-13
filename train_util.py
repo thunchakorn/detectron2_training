@@ -168,8 +168,8 @@ def regist_dataset(json_train_path, json_test_path):
     dataset must be in coco format
     ouput: name of training and testing set
     """
-    train_name = os.path.split(json_train_path)[-1]
-    test_name = os.path.split(json_test_path)[-1]
+    train_name = os.path.split(json_train_path)[-1][:-5]
+    test_name = os.path.split(json_test_path)[-1][:-5]
     
     register_coco_instances(train_name,
                             {},
