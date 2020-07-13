@@ -33,7 +33,6 @@ from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import DatasetMapper, MapDataset
-from detectron2.data import build_detection_test_loader
 from detectron2.data import transforms as T 
 from detectron2.data.detection_utils import read_image
 from detectron2.data.datasets import load_coco_json, register_coco_instances
@@ -100,10 +99,14 @@ def do_train(cfg, model, resume=False):
         if comm.is_main_process()
         else []
     )
-
+    min_size = cfg.INPUT.MIN_SIZE_TRAIN 
+    max_size = cfg.INPUT.MAX_SIZE_TRAIN, 
+    sample_style = cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING
     data_loader = build_detection_train_loader(cfg, mapper=DatasetMapper(cfg,
                                                                         is_train=True,
-                                                                        augmentations=[T.RandomFlip(prob = 0.5, vertical = False),
+                                                                        augmentations=[
+                                                                        T.ResizeShortestEdge(min_size, max_size, sample_style),
+                                                                        T.RandomFlip(prob = 0.5, vertical = False),
                                                                         T.RandomRotation(angle = [-10.0, 10.0]),
                                                                         
    ]))

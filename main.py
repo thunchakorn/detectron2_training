@@ -22,6 +22,9 @@ from detectron2.engine import launch
 
 
 def main(args):
+    if args.mlflow_path is not None:
+        pass
+    
     train_name, test_name = regist_dataset(args.train_label_path, args.test_label_path)
     cfg, hyperparameters = setup(args, train_name, test_name)
     dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
