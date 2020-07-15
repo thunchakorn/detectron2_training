@@ -217,7 +217,7 @@ def compare_gt(cfg, json_file, weight, dest_dir, score_thres_test = 0.7, num_sam
 
     #visualizing frmo prediction result
     
-    v_pd = Visualizer(img[:, :, ::-1], MetadataCatalog.get(dataset_name), scale=1.2)
+    v_pd = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TEST[0]), scale=1.2)
     v_pd = v_pd.draw_instance_predictions(outputs["instances"].to("cpu"))
 
     gt = cv2.resize(v_gt.get_image()[:, :, ::-1], (w,h))
