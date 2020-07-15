@@ -66,6 +66,8 @@ def main(args):
 
 
 if __name__ == "__main__":
+    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI'))
+    mlflow.set_experiment(os.getenv('MLFLOW_EXPERIMENT_NAME'))
     with mlflow.start_run():
         args = default_argument_parser().parse_args()
         print("Command Line Args:", args)

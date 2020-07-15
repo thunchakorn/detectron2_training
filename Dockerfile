@@ -3,7 +3,7 @@ FROM nvidia/cuda:10.1-cudnn7-devel
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update && apt-get install -y \
 	python3-opencv ca-certificates python3-dev git wget sudo  \
-	cmake ninja-build protobuf-compiler libprotobuf-dev && \
+	cmake ninja-build protobuf-compiler libprotobuf-dev nano && \
   rm -rf /var/lib/apt/lists/*
 RUN ln -sv /usr/bin/python3 /usr/bin/python
 
@@ -41,7 +41,7 @@ RUN python -m pip install 'git+https://github.com/facebookresearch/detectron2.gi
 ENV FVCORE_CACHE="/tmp"
 WORKDIR /app/
 
-COPY train_util ./
+COPY train_util.py ./
 COPY main.py .
 COPY ./ ./
 # install requirements libraries for training
