@@ -111,7 +111,7 @@ def do_train(cfg, model, resume=False):
                                                                         T.RandomApply(T.RandomRotation(angle = [180], sample_style = 'choice'), prob = 0.1),
                                                                         T.RandomApply(T.RandomRotation(angle = [-10,10], sample_style = 'range'), prob = 0.9),
                                                                         T.RandomApply(T.RandomBrightness(0.5,1.5), prob = 0.5),
-                                                                        T.RandomApply(T.RandomContraset(0.5,1.5), prob = 0.5)                                                             
+                                                                        T.RandomApply(T.RandomContrast(0.5,1.5), prob = 0.5)                                                             
    ]))
     data_loader = build_detection_train_loader(cfg)
     best_model_weight = copy.deepcopy(model.state_dict())
