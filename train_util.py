@@ -107,12 +107,11 @@ def do_train(cfg, model, resume=False):
                                                                         is_train=True,
                                                                         augmentations=[
                                                                         T.ResizeShortestEdge(min_size, max_size, sample_style),
-                                                                        T.RandomApply(T.RandomFlip(prob = 1, vertical = False), prob = 0.5),,
+                                                                        T.RandomApply(T.RandomFlip(prob = 1, vertical = False), prob = 0.5),
                                                                         T.RandomApply(T.RandomRotation(angle = [180], sample_style = 'choice'), prob = 0.1),
                                                                         T.RandomApply(T.RandomRotation(angle = [-10,10], sample_style = 'range'), prob = 0.9),
                                                                         T.RandomApply(T.RandomBrightness(0.5,1.5), prob = 0.5),
-                                                                        T.RandomApply(T.RandomContraset(0.5,1.5), prob = 0.5)
-                                                                        
+                                                                        T.RandomApply(T.RandomContraset(0.5,1.5), prob = 0.5)                                                             
    ]))
     data_loader = build_detection_train_loader(cfg)
     best_model_weight = copy.deepcopy(model.state_dict())
@@ -190,14 +189,15 @@ def regist_dataset(json_train_path, json_test_path):
                             "")
     return train_name, test_name
 
-def compare_gt(json_file, cfg, dataset_name, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+def compare_gt(json_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+  global cfg
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
   cfg.MODEL.WEIGHTS = weight
   predictor = DefaultPredictor(cfg)
 
   dataset_list_dict = load_coco_json(json_file,
                                   image_root = '',
-                                  dataset_name = dataset_name)
+                                  dataset_name = cfg.DATASETS.TEST[0])
   
   if len(dataset_list_dict) > num_sample:
     sample = random.sample(range(len(dataset_list_dict)), num_sample)
@@ -209,7 +209,7 @@ def compare_gt(json_file, cfg, dataset_name, weight, dest_dir, score_thres_test 
     img = read_image(img_dict['file_name'],format = 'BGR')
     h, w = img_dict['height'], img_dict['width']
     v_gt = Visualizer(img[:, :, ::-1],
-                            metadata=MetadataCatalog.get(dataset_name),
+                            metadata=MetadataCatalog.get(cfg.DATASETS.TEST[0]),
                             scale=0.5)
     v_gt = v_gt.draw_dataset_dict(img_dict)
 
