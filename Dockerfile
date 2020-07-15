@@ -1,4 +1,3 @@
-  
 FROM nvidia/cuda:10.1-cudnn7-devel
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -42,10 +41,11 @@ RUN python -m pip install 'git+https://github.com/facebookresearch/detectron2.gi
 ENV FVCORE_CACHE="/tmp"
 WORKDIR /app/
 
+COPY train_util ./
+COPY main.py .
 COPY ./ ./
 # install requirements libraries for training
 RUN python -m pip install -r requirements.txt
-
 
 
 # ENTRYPOINT ["python", "main.py"]

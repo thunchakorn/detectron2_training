@@ -33,7 +33,7 @@ from detectron2.config import get_cfg
 from detectron2.data import MetadataCatalog
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import DatasetMapper, MapDataset
-from detectron2.data import transforms as T 
+from detectron2.data import transforms as T
 from detectron2.data.detection_utils import read_image
 from detectron2.data.datasets import load_coco_json, register_coco_instances
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset, print_csv_format
@@ -85,6 +85,7 @@ def do_train(cfg, model, resume=False):
     checkpointer = DetectionCheckpointer(
         model, cfg.OUTPUT_DIR, optimizer=optimizer, scheduler=scheduler
     )
+    
     start_iter = (
         checkpointer.resume_or_load(cfg.MODEL.WEIGHTS, resume=resume).get("iteration", -1) + 1
     )
@@ -110,6 +111,7 @@ def do_train(cfg, model, resume=False):
                                                                         T.RandomRotation(angle = [-10.0, 10.0]),
                                                                         
    ]))
+    data_loader = build_detection_train_loader(cfg)
     best_model_weight = copy.deepcopy(model.state_dict())
     best_val_loss = None
     data_val_loader = build_detection_test_loader(cfg,
@@ -260,7 +262,6 @@ def default_argument_parser(epilog=None):
     parser.add_argument(
         "--machine-rank", type=int, default=0, help="the rank of this machine (unique per machine)"
     )
-    parser.add_argument("--mlflow_path", help="url to log mlflow", default = None)
 
     # PyTorch still may leave orphan processes in multi-gpu training.
     # Therefore we use a deterministic way to obtain port,
