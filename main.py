@@ -55,7 +55,7 @@ def main(args):
     mlflow.log_metrics({k + 'bbox':v for k,v in results['bbox'].items()})
     mlflow.log_metrics({k + 'segm':v for k,v in results['segm'].items()}) 
     
-    compare_gt(json_file = args.test_label_path,
+    compare_gt(cfg, json_file = args.test_label_path,
     dest_dir = dest_dir,
     weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
     score_thres_test = 0.7,
@@ -68,8 +68,6 @@ def main(args):
 if __name__ == "__main__":
     with mlflow.start_run():
         args = default_argument_parser().parse_args()
-        # mlflow.set_tracking_uri(remote_server_uri)
-        # mlflow.set_experiment("/my-experiment")
         print("Command Line Args:", args)
         launch(
             main,
