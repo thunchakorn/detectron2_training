@@ -189,8 +189,7 @@ def regist_dataset(json_train_path, json_test_path):
                             "")
     return train_name, test_name
 
-def compare_gt(json_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
-  global cfg
+def compare_gt(cfg, json_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
   cfg.MODEL.WEIGHTS = weight
   predictor = DefaultPredictor(cfg)
