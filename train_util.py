@@ -107,8 +107,11 @@ def do_train(cfg, model, resume=False):
                                                                         is_train=True,
                                                                         augmentations=[
                                                                         T.ResizeShortestEdge(min_size, max_size, sample_style),
-                                                                        T.RandomFlip(prob = 0.5, vertical = False),
-                                                                        T.RandomRotation(angle = [-10.0, 10.0]),
+                                                                        T.RandomApply(T.RandomFlip(prob = 1, vertical = False), prob = 0.5),,
+                                                                        T.RandomApply(T.RandomRotation(angle = [180], sample_style = 'choice'), prob = 0.1),
+                                                                        T.RandomApply(T.RandomRotation(angle = [-10,10], sample_style = 'range'), prob = 0.9),
+                                                                        T.RandomApply(T.RandomBrightness(0.5,1.5), prob = 0.5),
+                                                                        T.RandomApply(T.RandomContraset(0.5,1.5), prob = 0.5)
                                                                         
    ]))
     data_loader = build_detection_train_loader(cfg)

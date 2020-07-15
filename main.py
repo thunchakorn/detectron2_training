@@ -24,7 +24,6 @@ from detectron2.engine import launch
 def main(args):
     if args.mlflow_path is not None:
         pass
-    
     train_name, test_name = regist_dataset(args.train_label_path, args.test_label_path)
     cfg, hyperparameters = setup(args, train_name, test_name)
     dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
@@ -58,33 +57,27 @@ def main(args):
     mlflow.log_metrics({k + 'bbox':v for k,v in results['bbox'].items()})
     mlflow.log_metrics({k + 'segm':v for k,v in results['segm'].items()}) 
     
-    dataset_val = load_coco_json(json_file = args.test_label_path,
-                               image_root = '',
-                               dataset_name = "financial_val")
-
     compare_gt(json_file = args.test_label_path,
-    dataset_name = test_name,
     dest_dir = dest_dir,
-    cfg = cfg,
     weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
     score_thres_test = 0.7,
     num_sample = 10
     )
 
-    mlflow.log_artifacts(cfg.OUTPUT_DIR)
+    mlflow.log_artifacts(dest_dir)
 
 
 if __name__ == "__main__":
-
-    args = default_argument_parser().parse_args()
-    # mlflow.set_tracking_uri(remote_server_uri)
-    # mlflow.set_experiment("/my-experiment")
-    print("Command Line Args:", args)
-    launch(
-        main,
-        args.num_gpus,
-        num_machines=args.num_machines,
-        machine_rank=args.machine_rank,
-        dist_url=args.dist_url,
-        args=(args,),
-    )
+    with mlflow.start_run():
+        args = default_argument_parser().parse_args()
+        # mlflow.set_tracking_uri(remote_server_uri)
+        # mlflow.set_experiment("/my-experiment")
+        print("Command Line Args:", args)
+        launch(
+            main,
+            args.num_gpus,
+            num_machines=args.num_machines,
+            machine_rank=args.machine_rank,
+            dist_url=args.dist_url,
+            args=(args,),
+        )
