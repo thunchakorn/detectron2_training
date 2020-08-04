@@ -252,7 +252,8 @@ def default_argument_parser(epilog=None):
     """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--config-file", default="", metavar="FILE", help="path to config file")
+    parser.add_argument("--config_file", default="", metavar="FILE",
+    help="path to config file in model zoo")
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -309,7 +310,7 @@ def setup(args, train_name, test_name):
     Create configs and perform basic setups and log hyperparameter
     """
     cfg = get_cfg()
-    cfg.merge_from_file(args.config_file)
+    cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
     cfg.merge_from_list(args.opts)
     cfg.DATASETS.TRAIN = (train_name, )
     cfg.DATASETS.TEST = (test_name, )
