@@ -174,7 +174,7 @@ def do_train(cfg, model, resume=False):
     return model
 
 def get_classes_dict(thing_classes):
-    with open('classes.txt', 'r') as f:
+    with open(thing_classes, 'r') as f:
         k = []
         for line in f.readlines():
             k.append(line.strip())
@@ -333,7 +333,7 @@ def default_argument_parser(epilog=None):
         '-trp',
         '--train_label_path',
         required = True,
-        help = 'path to train label json file in coco format e.g. ./train.json',
+        help = 'path to train directory',
         default = './train.json',
         type = str
     )
@@ -342,7 +342,7 @@ def default_argument_parser(epilog=None):
         '-tep',
         '--test_label_path',
         required = True,
-        help = 'path to test label json file in coco format e.g. ./test.json',
+        help = 'path to test directory',
         default = './test.json',
         type = str
     )
