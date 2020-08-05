@@ -237,7 +237,8 @@ def compare_gt(cfg, json_file, weight, dest_dir, score_thres_test = 0.7, num_sam
   predictor = DefaultPredictor(cfg)
 
   data_val_loader = build_detection_test_loader(cfg,
-                                                cfg.DATASETS.TEST[0])
+                                                cfg.DATASETS.TEST[0],
+                                                )
   
   if len(data_val_loader) > num_sample:
     sample = random.sample(range(len(data_val_loader)), num_sample)

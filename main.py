@@ -56,7 +56,8 @@ def main(args):
     mlflow.log_metrics({k + 'bbox':v for k,v in results['bbox'].items()})
     mlflow.log_metrics({k + 'segm':v for k,v in results['segm'].items()}) 
     
-    compare_gt(cfg, json_file = args.test_label_path,
+    compare_gt(cfg, dir = args.test_label_path,
+    thing_classes = args.thing_classes
     dest_dir = dest_dir,
     weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
     score_thres_test = 0.7,
