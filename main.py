@@ -20,7 +20,6 @@ from detectron2.data.datasets import register_coco_instances
 from detectron2.engine import launch
 
 
-
 def main(args):
     train_name, num_class = regist_dataset(args.train_label_path, args.thing_classes)
     test_name, _ = regist_dataset(args.test_label_path, args.thing_classes)

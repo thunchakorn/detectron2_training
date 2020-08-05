@@ -231,23 +231,19 @@ def regist_dataset(dir, thing_classes):
     return name, len(classes_dict.keys())
 
 
-def compare_gt(cfg, json_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+def compare_gt(cfg, dir,thing_classes, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
   cfg.MODEL.WEIGHTS = weight
   predictor = DefaultPredictor(cfg)
-
-  data_val_loader = build_detection_test_loader(cfg,
-                                                cfg.DATASETS.TEST[0],
-                                                )
+  classes_dict = get_classes_dict(thing_classes)
+  dataset_list_dict = get_data_dicts(dir, classes_dict)
   
-  if len(data_val_loader) > num_sample:
-    sample = random.sample(range(len(data_val_loader)), num_sample)
+  if len(dataset_list_dict) > num_sample:
+    sample = random.sample(range(len(dataset_list_dict)), num_sample)
   else:
-    sample = range(len(data_val_loader))
-  for s, data in enumerate(data_val_loader):
-    if s not in sample:
-      continue
-    img_dict = data[0]
+    sample = range(len(dataset_list_dict))
+  for s in sample:
+    img_dict = dataset_list_dict[s]
     print(img_dict['file_name'])
     img = read_image(img_dict['file_name'],format = 'BGR')
     h, w = img_dict['height'], img_dict['width']
