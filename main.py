@@ -22,8 +22,9 @@ from detectron2.engine import launch
 
 
 def main(args):
-    train_name, test_name = regist_dataset(args.train_label_path, args.test_label_path)
-    cfg, hyperparameters = setup(args, train_name, test_name)
+    train_name, num_class = regist_dataset(args.train_label_path, args.thing_classes)
+    test_name, _ = regist_dataset(args.test_label_path, args.thing_classes)
+    cfg, hyperparameters = setup(args, train_name, test_name, num_class)
     dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
     if not args.resume:
         if os.path.isdir(cfg.OUTPUT_DIR):

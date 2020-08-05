@@ -11,12 +11,15 @@ from collections import OrderedDict
 import time
 import argparse
 import logging
+import glob
+import json
 
 # import mlflow
 import mlflow 
 import mlflow.pytorch
 
 # import some common detectron2 utilities
+from detectron2.structures import BoxMode
 import detectron2.utils.comm as comm
 from detectron2 import model_zoo
 from detectron2.modeling import build_model
@@ -30,7 +33,7 @@ from detectron2.utils.events import (
 from detectron2.engine import default_setup, DefaultPredictor
 from detectron2 import config
 from detectron2.config import get_cfg
-from detectron2.data import MetadataCatalog
+from detectron2.data import MetadataCatalog, DatasetCatalog
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.data import DatasetMapper, MapDataset
 from detectron2.data import transforms as T
@@ -46,6 +49,7 @@ from detectron2.data import (
 )
 
 logger = logging.getLogger("detectron2")
+
 
 def do_evaluate(cfg, model):
     """
@@ -168,42 +172,81 @@ def do_train(cfg, model, resume=False):
     model.load_state_dict(best_model_weight)
     checkpointer.save('model_best')
     return model
-                         
-def regist_dataset(json_train_path, json_test_path):
-    """
-    register training and testing dataset
-    dataset must be in coco format
-    ouput: name of training and testing set
-    """
-    train_name = os.path.split(json_train_path)[-1][:-5]
-    test_name = os.path.split(json_test_path)[-1][:-5]
-    
-    register_coco_instances(train_name,
-                            {},
-                            json_train_path,
-                            "")
-    
-    register_coco_instances(test_name,
-                            {},
-                            json_test_path,
-                            "")
-    return train_name, test_name
+
+def get_classes_dict(thing_classes):
+    with open('classes.txt', 'r') as f:
+        k = []
+        for line in f.readlines():
+            k.append(line.strip())
+    classes_dict = {v:idx for idx, v in enumerate(k)}
+    return classes_dict
+
+def get_annotation(labelme_shape, classes_dict):
+    shape_type = labelme_shape['shape_type']
+    contour = np.array(labelme_shape['points'])
+    x = contour[:, 0]
+    y = contour[:, 1]
+    left_top_x = np.min(x)
+    left_top_y = np.min(y)
+    right_bottom_x = np.max(x)
+    right_bottom_y = np.max(y)
+    if shape_type == 'rectangle':
+        poly = [left_top_x, left_top_y,
+                right_bottom_x, left_top_y,
+                right_bottom_x, right_bottom_y,
+                left_top_x, right_bottom_y]
+    elif shape_type == 'polygon':
+        poly = [p for i in contour for p in i]
+    return {
+        "bbox":[left_top_x, left_top_y, right_bottom_x, right_bottom_y],
+        "bbox_mode": BoxMode.XYXY_ABS,
+        "segmentation": [poly],
+        "category_id": classes_dict[labelme_shape['label']],
+    }
+
+def get_data_dicts(dir, classes_dict):
+    json_file = glob.glob(os.path.join(dir, "*.json"))
+    dataset_dicts = []
+    for idx, v in enumerate(json_file):
+        record = {}
+        with open(v) as f:
+            imgs_anns = json.load(f)
+        record['file_name'] = os.path.join(dir, imgs_anns['imagePath'])
+        record['image_id'] = idx
+        record['height'] = imgs_anns['imageHeight']
+        record['width'] = imgs_anns['imageWidth']
+        objs = []
+        for anno in imgs_anns['shapes']:
+            obj = get_annotation(anno, classes_dict)
+            objs.append(obj)
+        record['annotations'] = objs
+        dataset_dicts.append(record)
+    return dataset_dicts
+
+def regist_dataset(dir, thing_classes):
+    name = os.path.split(dir)[-1]
+    classes_dict = get_classes_dict(thing_classes)
+    DatasetCatalog.register(name, lambda: get_data_dicts(dir, classes_dict))
+    MetadataCatalog.get(name).set(thing_classes=[x for x in classes_dict.keys()])
+    return name, len(classes_dict.keys())
+
 
 def compare_gt(cfg, json_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
   cfg.MODEL.WEIGHTS = weight
   predictor = DefaultPredictor(cfg)
 
-  dataset_list_dict = load_coco_json(json_file,
-                                  image_root = '',
-                                  dataset_name = cfg.DATASETS.TEST[0])
+  data_val_loader = build_detection_test_loader(cfg,
+                                                cfg.DATASETS.TEST[0])
   
-  if len(dataset_list_dict) > num_sample:
-    sample = random.sample(range(len(dataset_list_dict)), num_sample)
+  if len(data_val_loader) > num_sample:
+    sample = random.sample(range(len(data_val_loader)), num_sample)
   else:
-    sample = range(len(dataset_list_dict))
-  for s in sample:
-    img_dict = dataset_list_dict[s]
+    sample = range(len(data_val_loader))
+  for s, data in enumerate(data_val_loader):
+    if s not in sample:
+      continue
+    img_dict = data[0]
     print(img_dict['file_name'])
     img = read_image(img_dict['file_name'],format = 'BGR')
     h, w = img_dict['height'], img_dict['width']
@@ -278,6 +321,15 @@ def default_argument_parser(epilog=None):
     )
 
     parser.add_argument(
+        "-th",
+        "--thing_classes",
+        default='classes.txt',
+        required=True,
+        help='path to text file of classes',
+        type = str
+    )
+
+    parser.add_argument(
         '-trp',
         '--train_label_path',
         required = True,
@@ -305,7 +357,7 @@ def default_argument_parser(epilog=None):
     )
     return parser
 
-def setup(args, train_name, test_name):
+def setup(args, train_name, test_name, num_class):
     """
     Create configs and perform basic setups and log hyperparameter
     """
@@ -314,6 +366,7 @@ def setup(args, train_name, test_name):
     cfg.merge_from_list(args.opts)
     cfg.DATASETS.TRAIN = (train_name, )
     cfg.DATASETS.TEST = (test_name, )
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = num_class
     # cfg.freeze()
     default_setup(
         cfg, args
@@ -321,28 +374,3 @@ def setup(args, train_name, test_name):
     # get adjusted hyperparameter  
     hyperparameters = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
     return cfg, hyperparameters
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
