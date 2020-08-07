@@ -14,9 +14,6 @@ import logging
 import glob
 import json
 
-# import mlflow
-import mlflow 
-import mlflow.pytorch
 
 # import some common detectron2 utilities
 from detectron2.structures import BoxMode
@@ -361,7 +358,8 @@ def setup(args, train_name, test_name, num_class):
     cfg = get_cfg()
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
-    cfg.DATASETS.TRAIN = (train_name, )
+    if train_name is not None:
+        cfg.DATASETS.TRAIN = (train_name, )
     cfg.DATASETS.TEST = (test_name, )
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = num_class
     # cfg.freeze()

@@ -1,13 +1,10 @@
 import os
 import shutil
 import logging
-#Requirements for detectron2
 
-#Linux or macOS with Python ≥ 3.6
-#PyTorch ≥ 1.4
-#torchvision that matches the PyTorch installation. You can install them together at pytorch.org to make sure of this.
-#pycocotools. Install it by pip install pycocotools>=2.0.1.
-#OpenCV, optional, needed by demo and visualization
+# import mlflow
+import mlflow 
+import mlflow.pytorch
 
 from train_util import *
 from torch.nn.parallel import DistributedDataParallel
@@ -52,8 +49,8 @@ def main(args):
                          conda_env = mlflow.pytorch.get_default_conda_env())
 
     results = do_evaluate(cfg, model)
-    mlflow.log_metrics({k + 'bbox':v for k,v in results['bbox'].items()})
-    mlflow.log_metrics({k + 'segm':v for k,v in results['segm'].items()}) 
+    mlflow.log_metrics({k + '_bbox':v for k,v in results['bbox'].items()})
+    mlflow.log_metrics({k + '_segm':v for k,v in results['segm'].items()}) 
     
     compare_gt(cfg, dir = args.test_label_path,
     thing_classes = args.thing_classes,
