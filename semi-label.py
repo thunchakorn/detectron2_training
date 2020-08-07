@@ -83,7 +83,7 @@ if __name__ == "__main__":
     required=True,
     help='image directory file')
 
-    parser.add_argument('-t',
+    parser.add_argument('-th',
     '--thing_classes',
     type=str,
     required=True,
@@ -96,11 +96,12 @@ if __name__ == "__main__":
     help='path to config file in model zoo e.g. /COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml')
 
     parser.add_argument('-s',
-    '--score_thres',
+    '--score_test_thres',
     default = 0.7,
+    type = float,
     help = 'cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = ...'
     )
 
     args = parser.parse_args()
 
-    main(args.weight, args.directory, args.thing_classes, args.config_file, args.score_thres)
+    main(args.weight, args.directory, args.thing_classes, args.config_file, args.score_test_thres)

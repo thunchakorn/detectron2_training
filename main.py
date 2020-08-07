@@ -27,8 +27,9 @@ def main(args):
             shutil.rmtree(cfg.OUTPUT_DIR)
         os.mkdir(cfg.OUTPUT_DIR)
         os.mkdir(dest_dir)
-
-    mlflow.log_params(hyperparameters)
+    if hasattr(args, 'opts'):
+        mlflow.log_params(hyperparameters)
+        
     model = build_model(cfg)
     logger.info("Model:\n{}".format(model))
     if args.eval_only:
@@ -57,7 +58,7 @@ def main(args):
     dest_dir = dest_dir,
     weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
     score_thres_test = 0.7,
-    num_sample = 10
+    num_sample = num_class
     )
 
     mlflow.log_artifacts(dest_dir)

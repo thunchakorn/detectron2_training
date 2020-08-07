@@ -167,7 +167,8 @@ def do_train(cfg, model, resume=False):
                     writer.write()
             
     model.load_state_dict(best_model_weight)
-    checkpointer.save('model_best')
+    experiment_name = os.getenv('MLFLOW_EXPERIMENT_NAME')
+    checkpointer.save(f'model_{experiment_name}')
     return model
 
 def get_classes_dict(thing_classes):
@@ -230,7 +231,9 @@ def regist_dataset(dir, thing_classes):
 
 def compare_gt(cfg, dir,thing_classes, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
-  cfg.MODEL.WEIGHTS = weight
+  if weight is not None:
+    cfg.MODEL.WEIGHTS = weight
+
   predictor = DefaultPredictor(cfg)
   classes_dict = get_classes_dict(thing_classes)
   dataset_list_dict = get_data_dicts(dir, classes_dict)
@@ -341,6 +344,12 @@ def default_argument_parser(epilog=None):
         type = str
     )
 
+    parser.add_argument('-s',
+    '--score_test_thres',
+    default = 0.7,
+    help = 'cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = ...'
+    )
+
     parser.add_argument(
         "opts",
         help="""Other configs from https://detectron2.readthedocs.io/modules/config.html#config-references
@@ -357,7 +366,8 @@ def setup(args, train_name, test_name, num_class):
     """
     cfg = get_cfg()
     cfg.merge_from_file(args.config_file)
-    cfg.merge_from_list(args.opts)
+    if hasattr(args, 'opts'):
+        cfg.merge_from_list(args.opts)
     if train_name is not None:
         cfg.DATASETS.TRAIN = (train_name, )
     cfg.DATASETS.TEST = (test_name, )
@@ -366,6 +376,9 @@ def setup(args, train_name, test_name, num_class):
     default_setup(
         cfg, args
     )
-    # get adjusted hyperparameter  
-    hyperparameters = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
+    # get adjusted hyperparameter
+    if hasattr(args, 'opts'):  
+        hyperparameters = {i:k for i,k in zip(args.opts[0::2], args.opts[1::2])}
+    else:
+        hyperparameters = None
     return cfg, hyperparameters
