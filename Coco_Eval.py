@@ -760,8 +760,7 @@ class COCOEvaluator(DatasetEvaluator):
         recalls = coco_eval.eval['recall']
         # precision has dims (iou, recall, cls, area range, max dets)
         assert len(class_names) == precisions.shape[2]
-        assertlen(class_names) == recalls.shape[1]
-
+        assert len(class_names) == recalls.shape[1]
         results_per_category = []
         for idx, name in enumerate(class_names):
             # area range index 0: all area ranges
