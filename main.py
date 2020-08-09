@@ -29,7 +29,7 @@ def main(args):
         os.mkdir(dest_dir)
     if hasattr(args, 'opts'):
         mlflow.log_params(hyperparameters)
-        
+
     model = build_model(cfg)
     logger.info("Model:\n{}".format(model))
     if args.eval_only:
@@ -52,11 +52,12 @@ def main(args):
     results = do_evaluate(cfg, model)
     mlflow.log_metrics({k + '_bbox':v for k,v in results['bbox'].items()})
     mlflow.log_metrics({k + '_segm':v for k,v in results['segm'].items()}) 
+    experiment_name = os.getenv('MLFLOW_EXPERIMENT_NAME')
     
     compare_gt(cfg, dir = args.test_label_path,
     thing_classes = args.thing_classes,
     dest_dir = dest_dir,
-    weight = os.path.join(cfg.OUTPUT_DIR, 'model_best.pth'),
+    weight = os.path.join(cfg.OUTPUT_DIR, f'model_{experiment_name}.pth'),
     score_thres_test = 0.7,
     num_sample = num_class
     )

@@ -36,8 +36,9 @@ from detectron2.data import DatasetMapper, MapDataset
 from detectron2.data import transforms as T
 from detectron2.data.detection_utils import read_image
 from detectron2.data.datasets import load_coco_json, register_coco_instances
-from detectron2.evaluation import COCOEvaluator, inference_on_dataset, print_csv_format
+from detectron2.evaluation import inference_on_dataset, print_csv_format
 from detectron2.utils.visualizer import Visualizer
+from Coco_Eval import COCOEvaluator
 
 from detectron2.data import (
     MetadataCatalog,
