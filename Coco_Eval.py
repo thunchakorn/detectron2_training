@@ -733,7 +733,7 @@ class COCOEvaluator(DatasetEvaluator):
 
         metrics = {
             "bbox": ["AP", "AP50", "AP75", "AR", "AR50", "AR75"],
-            "segm": ["AP", "AP50", "AP75", "AR", "AR50", "AR75"
+            "segm": ["AP", "AP50", "AP75", "AR", "AR50", "AR75"],
             "keypoints": ["AP", "AP50", "AP75", "APm", "APl"],
         }[iou_type]
 
@@ -757,8 +757,10 @@ class COCOEvaluator(DatasetEvaluator):
         # Compute per-category AP
         # from https://github.com/facebookresearch/Detectron/blob/a6a835f5b8208c45d0dce217ce9bbda915f44df7/detectron/datasets/json_dataset_evaluator.py#L222-L252 # noqa
         precisions = coco_eval.eval["precision"]
+        recalls = coco_eval.eval['recall']
         # precision has dims (iou, recall, cls, area range, max dets)
         assert len(class_names) == precisions.shape[2]
+        assertlen(class_names) == recalls.shape[1]
 
         results_per_category = []
         for idx, name in enumerate(class_names):
@@ -766,8 +768,15 @@ class COCOEvaluator(DatasetEvaluator):
             # max dets index -1: typically 100 per image
             precision = precisions[:, :, idx, 0, -1]
             precision = precision[precision > -1]
+
+            recall = recalls[:, idx, 0, -1]
+            recall = recall[recall > -1]
+
             ap = np.mean(precision) if precision.size else float("nan")
+            ar = np.mean(precision) if recall.size else float("nan")
+
             results_per_category.append(("{}".format(name), float(ap * 100)))
+            results_per_category.append(("{}".format(name), float(ar * 100)))
 
         # tabulate it
         N_COLS = min(6, len(results_per_category) * 2)
