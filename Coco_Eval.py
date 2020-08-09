@@ -1,3 +1,7 @@
+# if want to change output of metrics change the 2 followings
+# _summarizeDets, in summarize :  
+# _derive_coco_results : metrics
+
 import contextlib
 import copy
 import io
@@ -761,7 +765,7 @@ class COCOEvaluator(DatasetEvaluator):
         # precision has dims (iou, recall, cls, area range, max dets)
         assert len(class_names) == precisions.shape[2]
         assert len(class_names) == recalls.shape[1]
-        results_per_category = []
+        results_per_category = [] 
         for idx, name in enumerate(class_names):
             # area range index 0: all area ranges
             # max dets index -1: typically 100 per image
@@ -774,8 +778,8 @@ class COCOEvaluator(DatasetEvaluator):
             ap = np.mean(precision) if precision.size else float("nan")
             ar = np.mean(precision) if recall.size else float("nan")
 
-            results_per_category.append(("{}".format(name), float(ap * 100)))
-            results_per_category.append(("{}".format(name), float(ar * 100)))
+            results_per_category.append(("AP-{}".format(name), float(ap * 100)))
+            results_per_category.append(("AR-{}".format(name), float(ar * 100)))
 
         # tabulate it
         N_COLS = min(6, len(results_per_category) * 2)
@@ -790,7 +794,7 @@ class COCOEvaluator(DatasetEvaluator):
         )
         self._logger.info("Per-category {} AP: \n".format(iou_type) + table)
 
-        results.update({"AP-" + name: ap for name, ap in results_per_category})
+        results.update({name: ap for name, ap in results_per_category})
         return results
 
 
