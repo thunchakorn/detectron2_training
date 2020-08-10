@@ -1,3 +1,7 @@
+# if want to change output of metrics change the 2 followings
+# _summarizeDets, in summarize :  
+# _derive_coco_results : metrics
+
 import contextlib
 import copy
 import io
