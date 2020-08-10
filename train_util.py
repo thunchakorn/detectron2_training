@@ -230,7 +230,7 @@ def regist_dataset(dir, thing_classes):
     return name, len(classes_dict.keys())
 
 
-def compare_gt(cfg, dir,thing_classes, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+def compare_gt(cfg, dir, thing_classes, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
   cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
   if weight is not None:
     cfg.MODEL.WEIGHTS = weight
