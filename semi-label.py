@@ -63,8 +63,10 @@ def main(weight, directory, thing_classes, config_file, thres):
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = thres
     jpg_files = glob.glob(os.path.join(directory, "*.jpg"))
 
-    with open(thing_classes, 'rb') as fp:
-        thing_classes = pickle.load(fp)
+    with open('classes.txt', 'r') as f:
+        thing_classes = []
+        for line in f.readlines():
+            thing_classes.append(line.strip())
     
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = len(thing_classes)
     gen_predict(cfg, jpg_files, thing_classes)
