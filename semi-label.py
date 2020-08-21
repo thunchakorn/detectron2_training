@@ -56,14 +56,14 @@ def gen_predict(cfg, jpg_files, thing_classes):
         with open(file_name, 'w') as j:
             json.dump(json_file, j)
 
-def main(weight, directory, thing_classes, config_file, thres):
+def main(weight, directory, classes, config_file, thres):
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file(config_file))
     cfg.MODEL.WEIGHTS = args.weight
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = thres
     jpg_files = glob.glob(os.path.join(directory, "*.jpg"))
 
-    with open('classes.txt', 'r') as f:
+    with open(classes, 'r') as f:
         thing_classes = []
         for line in f.readlines():
             thing_classes.append(line.strip())
