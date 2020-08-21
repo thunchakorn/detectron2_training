@@ -89,7 +89,7 @@ if __name__ == "__main__":
     '--thing_classes',
     type=str,
     required=True,
-    help='path to class list pickle file')
+    help='path to class list file')
 
     parser.add_argument('-c',
     '--config_file',
