@@ -46,6 +46,3 @@ COPY main.py .
 COPY ./ ./
 # install requirements libraries for training
 RUN python -m pip install -r requirements.txt
-
-
-# ENTRYPOINT ["python", "main.py"]
