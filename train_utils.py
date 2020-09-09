@@ -48,7 +48,6 @@ from detectron2.data import (
 
 logger = logging.getLogger("detectron2")
 
-
 def do_evaluate(cfg, model):
     """
     Evaluate on test set using coco evaluate
@@ -65,7 +64,6 @@ def do_evaluate(cfg, model):
     if len(results) == 1:
         results = list(results.values())[0]
     return results
-
 
 def do_val_monitor(cfg, model, data_val_loader):
     """
@@ -223,51 +221,109 @@ def get_data_dicts(dir, classes_dict):
     return dataset_dicts
 
 def regist_dataset(dir, thing_classes):
+    """
+    for labelme format
+    """
     name = os.path.split(dir)[-1]
     classes_dict = get_classes_dict(thing_classes)
     DatasetCatalog.register(name, lambda: get_data_dicts(dir, classes_dict))
     MetadataCatalog.get(name).set(thing_classes=[x for x in classes_dict.keys()])
     return name, len(classes_dict.keys())
 
-
-def compare_gt(cfg, dir, thing_classes, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
-  cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
-  if weight is not None:
-    cfg.MODEL.WEIGHTS = weight
-
-  predictor = DefaultPredictor(cfg)
-  classes_dict = get_classes_dict(thing_classes)
-  dataset_list_dict = get_data_dicts(dir, classes_dict)
-  
-  if len(dataset_list_dict) > num_sample:
-    sample = random.sample(range(len(dataset_list_dict)), num_sample)
-  else:
-    sample = range(len(dataset_list_dict))
-  for s in sample:
-    img_dict = dataset_list_dict[s]
-    print(img_dict['file_name'])
-    img = read_image(img_dict['file_name'],format = 'BGR')
-    h, w = img_dict['height'], img_dict['width']
-    v_gt = Visualizer(img[:, :, ::-1],
-                            metadata=MetadataCatalog.get(cfg.DATASETS.TEST[0]),
-                            scale=0.5)
-    v_gt = v_gt.draw_dataset_dict(img_dict)
-
-    #predicting
-    outputs = predictor(img)
-
-    #visualizing frmo prediction result
+def regist_coco_dataset(json_path, thing_classes):
+    """
+    register training and testing dataset
+    dataset must be in coco format
+    ouput: name of training and testing set
+    """
+    name = os.path.split(json_path)[-1]
+    classes_dict = get_classes_dict(thing_classes)
     
-    v_pd = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TEST[0]), scale=1.2)
-    v_pd = v_pd.draw_instance_predictions(outputs["instances"].to("cpu"))
+    register_coco_instances(name,
+                            {},
+                            json_path,
+                            "")
+    MetadataCatalog.get(name).set(thing_classes=[x for x in classes_dict.keys()])
+    return name, len(classes_dict.keys())
 
-    gt = cv2.resize(v_gt.get_image()[:, :, ::-1], (w,h))
-    pd = cv2.resize(v_pd.get_image()[:, :, ::-1], (w,h))
+def compare_gt_coco(cfg, annotation_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
+    if weight is not None:
+        cfg.MODEL.WEIGHTS = weight
 
-    #stacking groudtruth and prediction
-    merge_img = np.hstack((gt, pd))
-    result_name = os.path.join(dest_dir, os.path.split(img_dict['file_name'])[1])
-    cv2.imwrite(result_name, merge_img)
+    predictor = DefaultPredictor(cfg)
+    dataset_list_dict = load_coco_json(annotation_file,
+                                    image_root = '',
+                                    dataset_name = cfg.DATASETS.TEST[0])
+    
+    if len(dataset_list_dict) > num_sample:
+        sample = random.sample(range(len(dataset_list_dict)), num_sample)
+    else:
+        sample = range(len(dataset_list_dict))
+    for s in sample:
+        img_dict = dataset_list_dict[s]
+        print(img_dict['file_name'])
+        img = read_image(img_dict['file_name'],format = 'BGR')
+        h, w = img_dict['height'], img_dict['width']
+        v_gt = Visualizer(img[:, :, ::-1],
+                                metadata=MetadataCatalog.get(cfg.DATASETS.TEST[0]),
+                                scale=0.5)
+        v_gt = v_gt.draw_dataset_dict(img_dict)
+
+        #predicting
+        outputs = predictor(img)
+
+        #visualizing frmo prediction result
+        
+        v_pd = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TEST[0]), scale=1.2)
+        v_pd = v_pd.draw_instance_predictions(outputs["instances"].to("cpu"))
+
+        gt = cv2.resize(v_gt.get_image()[:, :, ::-1], (w,h))
+        pd = cv2.resize(v_pd.get_image()[:, :, ::-1], (w,h))
+
+        #stacking groudtruth and prediction
+        merge_img = np.hstack((gt, pd))
+        result_name = os.path.join(dest_dir, os.path.split(img_dict['file_name'])[1])
+        cv2.imwrite(result_name, merge_img)
+
+def compare_gt_labelme(cfg, dir, thing_classes, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):
+    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = score_thres_test
+    if weight is not None:
+        cfg.MODEL.WEIGHTS = weight
+
+    predictor = DefaultPredictor(cfg)
+    classes_dict = get_classes_dict(thing_classes)
+    dataset_list_dict = get_data_dicts(dir, classes_dict)
+    
+    if len(dataset_list_dict) > num_sample:
+        sample = random.sample(range(len(dataset_list_dict)), num_sample)
+    else:
+        sample = range(len(dataset_list_dict))
+    for s in sample:
+        img_dict = dataset_list_dict[s]
+        print(img_dict['file_name'])
+        img = read_image(img_dict['file_name'],format = 'BGR')
+        h, w = img_dict['height'], img_dict['width']
+        v_gt = Visualizer(img[:, :, ::-1],
+                                metadata=MetadataCatalog.get(cfg.DATASETS.TEST[0]),
+                                scale=0.5)
+        v_gt = v_gt.draw_dataset_dict(img_dict)
+
+        #predicting
+        outputs = predictor(img)
+
+        #visualizing frmo prediction result
+        
+        v_pd = Visualizer(img[:, :, ::-1], MetadataCatalog.get(cfg.DATASETS.TEST[0]), scale=1.2)
+        v_pd = v_pd.draw_instance_predictions(outputs["instances"].to("cpu"))
+
+        gt = cv2.resize(v_gt.get_image()[:, :, ::-1], (w,h))
+        pd = cv2.resize(v_pd.get_image()[:, :, ::-1], (w,h))
+
+        #stacking groudtruth and prediction
+        merge_img = np.hstack((gt, pd))
+        result_name = os.path.join(dest_dir, os.path.split(img_dict['file_name'])[1])
+        cv2.imwrite(result_name, merge_img)
 
 def default_argument_parser(epilog=None):
     """
@@ -328,8 +384,8 @@ def default_argument_parser(epilog=None):
     )
 
     parser.add_argument(
-        '-trp',
-        '--train_label_path',
+        '-tra',
+        '--train_annotation',
         required = True,
         help = 'path to train directory',
         default = './train.json',
@@ -337,8 +393,8 @@ def default_argument_parser(epilog=None):
     )
 
     parser.add_argument(
-        '-tep',
-        '--test_label_path',
+        '-tea',
+        '--test_annotation',
         required = True,
         help = 'path to test directory',
         default = './test.json',

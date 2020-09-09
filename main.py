@@ -18,8 +18,8 @@ from detectron2.engine import launch
 
 
 def main(args):
-    train_name, num_class = regist_dataset(args.train_label_path, args.thing_classes)
-    test_name, _ = regist_dataset(args.test_label_path, args.thing_classes)
+    train_name, num_class = regist_coco_dataset(args.train_annotation, args.thing_classes)
+    test_name, _ = regist_coco_dataset(args.test_annotation, args.thing_classes)
     cfg, hyperparameters = setup(args, train_name, test_name, num_class)
     dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
     if not args.resume:
@@ -54,8 +54,7 @@ def main(args):
     mlflow.log_metrics({k + '_segm':v for k,v in results['segm'].items()}) 
     experiment_name = os.getenv('MLFLOW_EXPERIMENT_NAME')
     
-    compare_gt(cfg, dir = args.test_label_path,
-    thing_classes = args.thing_classes,
+    compare_gt_coco(cfg, annotation_file = args.test_annotation,
     dest_dir = dest_dir,
     weight = os.path.join(cfg.OUTPUT_DIR, f'model_{experiment_name}.pth'),
     score_thres_test = 0.7,
