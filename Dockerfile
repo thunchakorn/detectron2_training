@@ -9,15 +9,15 @@ RUN ln -sv /usr/bin/python3 /usr/bin/python
 
 ENV PATH="/home/appuser/.local/bin:${PATH}"
 RUN wget https://bootstrap.pypa.io/get-pip.py && \
-	python3 get-pip.py --user && \
+	python3 get-pip.py && \
 	rm get-pip.py
 
 # install dependencies
 # See https://pytorch.org/ for other options if you use a different version of CUDA
-RUN pip install --user tensorboard
-RUN pip install --user torch==1.5 torchvision==0.6 -f https://download.pytorch.org/whl/cu101/torch_stable.html
+RUN pip install tensorboard
+RUN pip install torch==1.5 torchvision==0.6 -f https://download.pytorch.org/whl/cu101/torch_stable.html
 
-RUN pip install --user 'git+https://github.com/facebookresearch/fvcore'
+RUN pip install 'git+https://github.com/facebookresearch/fvcore'
 
 # set FORCE_CUDA because during `docker build` cuda is not accessible
 ENV FORCE_CUDA="1"
@@ -34,7 +34,7 @@ RUN python -m pip install 'git+https://github.com/facebookresearch/detectron2.gi
 ENV FVCORE_CACHE="/tmp"
 WORKDIR /app/
 
-COPY train_util.py ./
+COPY train_utils.py ./
 COPY main.py .
 COPY ./ ./
 # install requirements libraries for training

@@ -6,7 +6,7 @@ import logging
 import mlflow 
 import mlflow.pytorch
 
-from train_util import *
+from train_utils import *
 from torch.nn.parallel import DistributedDataParallel
 
 from detectron2.modeling import build_model

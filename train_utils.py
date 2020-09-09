@@ -112,8 +112,7 @@ def do_train(cfg, model, resume=False):
                                                                         T.RandomApply(T.RandomRotation(angle = [-10,10], sample_style = 'range'), prob = 0.9),
                                                                         T.RandomApply(T.RandomBrightness(0.5,1.5), prob = 0.5),
                                                                         T.RandomApply(T.RandomContrast(0.5,1.5), prob = 0.5)                                                             
-   ]))
-    data_loader = build_detection_train_loader(cfg)
+                                                                        ]))
     best_model_weight = copy.deepcopy(model.state_dict())
     best_val_loss = None
     data_val_loader = build_detection_test_loader(cfg,
@@ -243,7 +242,6 @@ def regist_coco_dataset(json_path, thing_classes):
                             {},
                             json_path,
                             "")
-    MetadataCatalog.get(name).set(thing_classes=[x for x in classes_dict.keys()])
     return name, len(classes_dict.keys())
 
 def compare_gt_coco(cfg, annotation_file, weight, dest_dir, score_thres_test = 0.7, num_sample = 10):

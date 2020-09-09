@@ -4,7 +4,7 @@ import os
 import mlflow 
 import mlflow.pytorch
 
-from train_util import do_evaluate, compare_gt, setup, regist_dataset, regist_coco_dataset
+from train_utils import do_evaluate, compare_gt_coco, setup, regist_dataset, regist_coco_dataset
 from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
