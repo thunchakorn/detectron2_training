@@ -348,7 +348,7 @@ def default_argument_parser(epilog=None):
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--config_file", default="", metavar="FILE",
-    help="path to config file in model zoo")
+    help="path to config file in model zoo e.g. COCO-InstanceSegmentation/mask_rcnn_X_101_32x8d_FPN_3x.yaml")
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -420,7 +420,7 @@ def setup(args, train_name, test_name, num_class):
     Create configs and perform basic setups and log hyperparameter
     """
     cfg = get_cfg()
-    cfg.merge_from_file(args.config_file)
+    cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
     if hasattr(args, 'opts'):
         cfg.merge_from_list(args.opts)
     if train_name is not None:
