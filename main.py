@@ -69,6 +69,7 @@ if __name__ == "__main__":
     mlflow.set_experiment(os.getenv('MLFLOW_EXPERIMENT_NAME'))
     with mlflow.start_run():
         args = default_argument_parser().parse_args()
+        args.config_file = os.path.join('configs', args.config_file)
         print("Command Line Args:", args)
         launch(
             main,

@@ -420,7 +420,7 @@ def setup(args, train_name, test_name, num_class):
     Create configs and perform basic setups and log hyperparameter
     """
     cfg = get_cfg()
-    cfg.merge_from_file(model_zoo.get_config_file(args.config_file))
+    cfg.merge_from_file(args.config_file)
     if hasattr(args, 'opts'):
         cfg.merge_from_list(args.opts)
     if train_name is not None:
