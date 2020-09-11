@@ -45,9 +45,11 @@ def main(args):
         )
 
     model = do_train(cfg, model, resume=args.resume)
-    mlflow.pytorch.log_model(pytorch_model = model,
-                         artifact_path = 'model_best',
-                         conda_env = mlflow.pytorch.get_default_conda_env())
+    # mlflow.pytorch.log_model(pytorch_model = model,
+    #                      artifact_path = 'model_best',
+    #                      conda_env = mlflow.pytorch.get_default_conda_env())
+    mlflow.log_artifact(os.path.join(cfg.OUTPUT_DIR, f'model_{os.getenv("MLFLOW_EXPERIMENT_NAME")}.pth'))
+
 
     results = do_evaluate(cfg, model)
     mlflow.log_metrics({k + '_bbox':v for k,v in results['bbox'].items()})
