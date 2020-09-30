@@ -1,6 +1,7 @@
 # if want to change output of metrics change the 2 followings
 # _summarizeDets, in summarize :  
-# _derive_coco_results : metrics
+# _derive_coco_results : metrics, precisoin and recall
+# _derive_coco_results : 
 
 import contextlib
 import copy
@@ -769,17 +770,34 @@ class COCOEvaluator(DatasetEvaluator):
         for idx, name in enumerate(class_names):
             # area range index 0: all area ranges
             # max dets index -1: typically 100 per image
+
             precision = precisions[:, :, idx, 0, -1]
-            precision = precision[precision > -1]
+            #precision = precision[precision > -1]
 
             recall = recalls[:, idx, 0, -1]
-            recall = recall[recall > -1]
+            #recall = recall[recall > -1]
+            print(precision.shape, recall.shape)
+            # ap = np.mean(precision) if precision.size else float("nan")
+            # ar = np.mean(recall) if recall.size else float("nan")
 
-            ap = np.mean(precision) if precision.size else float("nan")
-            ar = np.mean(precision) if recall.size else float("nan")
+            ap_50 = np.mean(precision[0])
+            ap_75 = np.mean(precision[5])
 
-            results_per_category.append(("AP-{}".format(name), float(ap * 100)))
-            results_per_category.append(("AR-{}".format(name), float(ar * 100)))
+            ar_50 = recall[0]
+            ar_75 = recall[5]
+
+            results_per_category.append(("AP50-{}".format(name), float(ap_50 * 100)))
+            results_per_category.append(("AP75-{}".format(name), float(ap_75 * 100)))
+
+            results_per_category.append(("AR50-{}".format(name), float(ar_50 * 100)))
+            results_per_category.append(("AR75-{}".format(name), float(ar_75 * 100)))
+
+            #results_per_category.append(("AP-{}".format(name), float(ap * 100)))
+            #results_per_category.append(("AR-{}".format(name), float(ar * 100)))
+
+
+
+
 
         # tabulate it
         N_COLS = min(6, len(results_per_category) * 2)
