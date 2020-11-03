@@ -53,14 +53,14 @@ def do_evaluate(cfg, model):
     Evaluate on test set using coco evaluate
     """
     results = OrderedDict()
-    for dataset_name in cfg.DATASETS.TEST:
-        data_loader = build_detection_test_loader(cfg, dataset_name)
-        evaluator = COCOEvaluator(dataset_name, cfg, False, output_dir= cfg.OUTPUT_DIR)
-        results_i = inference_on_dataset(model, data_loader, evaluator)
-        results[dataset_name] = results_i
-        if comm.is_main_process():
-            logger.info("Evaluation results for {} in csv format:".format(dataset_name))
-            print_csv_format(results_i)
+    dataset_name = cfg.DATASETS.TEST[1]
+    data_loader = build_detection_test_loader(cfg, dataset_name)
+    evaluator = COCOEvaluator(dataset_name, cfg, False, output_dir= cfg.OUTPUT_DIR)
+    results_i = inference_on_dataset(model, data_loader, evaluator)
+    results[dataset_name] = results_i
+    if comm.is_main_process():
+        logger.info("Evaluation results for {} in csv format:".format(dataset_name))
+        print_csv_format(results_i)
     if len(results) == 1:
         results = list(results.values())[0]
     return results
@@ -252,7 +252,7 @@ def compare_gt_coco(cfg, annotation_file, weight, dest_dir, score_thres_test = 0
     predictor = DefaultPredictor(cfg)
     dataset_list_dict = load_coco_json(annotation_file,
                                     image_root = '',
-                                    dataset_name = cfg.DATASETS.TEST[0])
+                                    dataset_name = cfg.DATASETS.TEST[1])
     
     if len(dataset_list_dict) > num_sample:
         sample = random.sample(range(len(dataset_list_dict)), num_sample)
@@ -391,6 +391,15 @@ def default_argument_parser(epilog=None):
     )
 
     parser.add_argument(
+        '-va',
+        '--val_annotation',
+        required = True,
+        help = 'path to train directory',
+        default = './val.json',
+        type = str
+    )
+
+    parser.add_argument(
         '-tea',
         '--test_annotation',
         required = True,
@@ -415,7 +424,7 @@ def default_argument_parser(epilog=None):
     )
     return parser
 
-def setup(args, train_name, test_name, num_class):
+def setup(args, train_name, val_name, test_name, num_class):
     """
     Create configs and perform basic setups and log hyperparameter
     """
@@ -425,7 +434,7 @@ def setup(args, train_name, test_name, num_class):
         cfg.merge_from_list(args.opts)
     if train_name is not None:
         cfg.DATASETS.TRAIN = (train_name, )
-    cfg.DATASETS.TEST = (test_name, )
+    cfg.DATASETS.TEST = (val_name, test_name)
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = num_class
     # cfg.freeze()
     default_setup(

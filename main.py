@@ -19,8 +19,9 @@ from detectron2.engine import launch
 
 def main(args):
     train_name, num_class = regist_coco_dataset(args.train_annotation, args.thing_classes)
+    val_name, _ = regist_coco_dataset(args.val_annotation, args.thing_classes)
     test_name, _ = regist_coco_dataset(args.test_annotation, args.thing_classes)
-    cfg, hyperparameters = setup(args, train_name, test_name, num_class)
+    cfg, hyperparameters = setup(args, train_name, val_name,test_name, num_class)
     dest_dir = os.path.join(cfg.OUTPUT_DIR, 'sample_compare_result')
     if not args.resume:
         if os.path.isdir(cfg.OUTPUT_DIR):
