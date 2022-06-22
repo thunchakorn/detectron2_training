@@ -1,4 +1,4 @@
 opencv_python
-numpy==1.18.1
+numpy==1.22.0
 mlflow==1.9.1
 boto3
